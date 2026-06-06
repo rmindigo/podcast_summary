@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Investing Digest: Weekly Podcast Intelligence</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="page">
+
+    <nav class="nav">
+      <div class="nav-logo">
+        <span class="logo-mark">ID</span>
+        <span class="logo-text">Investing Digest</span>
+      </div>
+      <button class="btn btn-ghost" onclick="showResend()">Already subscribed?</button>
+    </nav>
+
+    <main class="hero">
+      <div class="hero-badge">Every Saturday at 12PM</div>
+      <h1 class="hero-title">Your podcasts,<br>distilled into alpha.</h1>
+      <p class="hero-sub">
+        Paste your favourite investing podcast channels. Every Saturday we send you a structured briefing: macro themes, key calls, and every stock or asset mentioned, with sentiment.
+      </p>
+
+      <div class="signup-card" id="signup-section">
+        <div class="card-label">Get your free weekly digest</div>
+        <form class="signup-form" id="signup-form">
+          <input
+            type="email"
+            id="email-input"
+            class="input"
+            placeholder="your@email.com"
+            required
+            autocomplete="email"
+          />
+          <button type="submit" class="btn btn-primary" id="signup-btn">
+            Subscribe Free
+          </button>
+        </form>
+        <p class="form-hint">No password needed. We'll email you a private dashboard link.</p>
+        <div class="form-message" id="form-message"></div>
+      </div>
+
+      <!-- Resend link section (hidden by default) -->
+      <div class="signup-card" id="resend-section" style="display:none;">
+        <div class="card-label">Resend my dashboard link</div>
+        <form class="signup-form" id="resend-form">
+          <input
+            type="email"
+            id="resend-email"
+            class="input"
+            placeholder="your@email.com"
+            required
+          />
+          <button type="submit" class="btn btn-primary" id="resend-btn">Send Link</button>
+        </form>
+        <p class="form-hint" style="margin-top:10px;">
+          <a href="#" onclick="showSignup(); return false;" class="link">Back to sign up</a>
+        </p>
+        <div class="form-message" id="resend-message"></div>
+      </div>
+    </main>
+
+    <!-- What you get -->
+    <section class="features">
+      <div class="features-grid">
+        <div class="feature">
+          <div class="feature-icon">01</div>
+          <h3>Weekly Overview</h3>
+          <p>An aggregate narrative across all your channels: dominant themes, who agrees, who disagrees, and what is actionable.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">02</div>
+          <h3>Episode Breakdown</h3>
+          <p>Each podcast summarized separately in chronological order, with key points extracted for the investor perspective.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">03</div>
+          <h3>Asset Mentions</h3>
+          <p>Every stock, crypto, commodity, or ETF mentioned, with sentiment (bullish/bearish/mixed) and what was said.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>Powered by Claude AI &middot; Delivered every Saturday at noon</p>
+    </footer>
+
+  </div>
+
+  <script>
+    function showResend() {
+      document.getElementById('signup-section').style.display = 'none';
+      document.getElementById('resend-section').style.display = 'block';
+    }
+    function showSignup() {
+      document.getElementById('resend-section').style.display = 'none';
+      document.getElementById('signup-section').style.display = 'block';
+    }
+
+    function showMessage(id, text, isError) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = 'form-message ' + (isError ? 'error' : 'success');
+    }
+
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('signup-btn');
+      const email = document.getElementById('email-input').value;
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      try {
+        const res = await fetch('/api/signup', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({email}),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage('form-message', data.message, false);
+          document.getElementById('email-input').value = '';
+        } else {
+          showMessage('form-message', data.detail || 'Something went wrong.', true);
+        }
+      } catch {
+        showMessage('form-message', 'Network error. Please try again.', true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Subscribe Free';
+      }
+    });
+
+    document.getElementById('resend-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('resend-btn');
+      const email = document.getElementById('resend-email').value;
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      try {
+        const res = await fetch('/api/resend-link', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({email}),
+        });
+        const data = await res.json();
+        showMessage('resend-message', data.message, !res.ok);
+      } catch {
+        showMessage('resend-message', 'Network error. Please try again.', true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send Link';
+      }
+    });
+  </script>
+</body>
+</html>

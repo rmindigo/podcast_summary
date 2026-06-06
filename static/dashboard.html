@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Channels | Investing Digest</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="page">
+
+    <nav class="nav">
+      <div class="nav-logo">
+        <span class="logo-mark">ID</span>
+        <span class="logo-text">Investing Digest</span>
+      </div>
+      <div class="nav-user" id="nav-user"></div>
+    </nav>
+
+    <main class="dashboard">
+      <div class="dashboard-header">
+        <h1 class="dashboard-title">My Channels</h1>
+        <p class="dashboard-sub">Add YouTube channel URLs for any investing podcast you want included in your weekly digest.</p>
+      </div>
+
+      <!-- Add channel form -->
+      <div class="add-channel-card">
+        <div class="card-label">Add a channel</div>
+        <form class="add-form" id="add-form">
+          <input
+            type="url"
+            id="channel-url"
+            class="input"
+            placeholder="https://www.youtube.com/@InvestLikeTheBest"
+            required
+          />
+          <button type="submit" class="btn btn-primary" id="add-btn">Add Channel</button>
+        </form>
+        <div class="form-message" id="add-message"></div>
+        <div class="url-examples">
+          <span class="example-label">Accepted formats:</span>
+          <code>youtube.com/@channelname</code>
+          <code>youtube.com/c/channelname</code>
+          <code>youtube.com/channel/UCxxxxxx</code>
+        </div>
+      </div>
+
+      <!-- Channels list -->
+      <div class="channels-section">
+        <div class="channels-header">
+          <span class="section-label">Subscribed Channels</span>
+          <span class="channel-count" id="channel-count"></span>
+        </div>
+        <div id="channels-list" class="channels-list">
+          <div class="loading">Loading your channels...</div>
+        </div>
+      </div>
+
+      <div class="digest-info">
+        <div class="info-icon">&#x1F4E7;</div>
+        <div>
+          <strong>Next digest:</strong> This Saturday at 12:00 PM UTC<br>
+          <span class="muted">Only channels with transcripts available in the past 7 days will be included.</span>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    if (!token) {
+      document.querySelector('.dashboard').innerHTML = `
+        <div class="error-state">
+          <h2>No access token found.</h2>
+          <p>Please use the link from your welcome email, or <a href="/" class="link">get a new link here</a>.</p>
+        </div>
+      `;
+    } else {
+      init();
+    }
+
+    async function apiCall(path, options = {}) {
+      return fetch(path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...(options.headers || {}),
+        },
+      });
+    }
+
+    async function init() {
+      // Load user info
+      try {
+        const res = await apiCall(`/api/me?token=${token}`);
+        if (!res.ok) throw new Error();
+        const user = await res.json();
+        document.getElementById('nav-user').textContent = user.email;
+      } catch {
+        // Non-fatal
+      }
+
+      loadChannels();
+    }
+
+    async function loadChannels() {
+      const list = document.getElementById('channels-list');
+      const count = document.getElementById('channel-count');
+      try {
+        const res = await apiCall('/api/channels');
+        const channels = await res.json();
+        count.textContent = channels.length + ' channel' + (channels.length !== 1 ? 's' : '');
+
+        if (channels.length === 0) {
+          list.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">&#128250;</div>
+              <p>No channels yet. Add your first YouTube investing channel above.</p>
+              <p class="muted">Popular channels: <em>We Study Billionaires, Invest Like the Best, Macro Voices, Real Vision</em></p>
+            </div>
+          `;
+          return;
+        }
+
+        list.innerHTML = channels.map(c => `
+          <div class="channel-row" id="channel-${c.id}">
+            <div class="channel-info">
+              <div class="channel-name">${escapeHtml(c.name)}</div>
+              <a href="${escapeHtml(c.url)}" target="_blank" class="channel-url">${escapeHtml(c.url)}</a>
+            </div>
+            <button class="btn btn-danger-ghost" onclick="removeChannel(${c.id}, '${escapeHtml(c.name)}')">
+              Remove
+            </button>
+          </div>
+        `).join('');
+      } catch {
+        list.innerHTML = '<div class="error-state">Failed to load channels. Please refresh.</div>';
+      }
+    }
+
+    document.getElementById('add-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('add-btn');
+      const url = document.getElementById('channel-url').value.trim();
+      const msg = document.getElementById('add-message');
+
+      btn.disabled = true;
+      btn.textContent = 'Checking...';
+      msg.textContent = '';
+      msg.className = 'form-message';
+
+      try {
+        const res = await apiCall('/api/channels', {
+          method: 'POST',
+          body: JSON.stringify({url}),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          msg.textContent = data.message;
+          msg.className = 'form-message success';
+          document.getElementById('channel-url').value = '';
+          loadChannels();
+        } else {
+          msg.textContent = data.detail || 'Failed to add channel.';
+          msg.className = 'form-message error';
+        }
+      } catch {
+        msg.textContent = 'Network error. Please try again.';
+        msg.className = 'form-message error';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Add Channel';
+      }
+    });
+
+    async function removeChannel(id, name) {
+      if (!confirm(`Remove "${name}" from your digest?`)) return;
+      try {
+        const res = await apiCall(`/api/channels/${id}`, {method: 'DELETE'});
+        if (res.ok) {
+          document.getElementById(`channel-${id}`)?.remove();
+          loadChannels();
+        }
+      } catch {
+        alert('Failed to remove channel. Please try again.');
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+  </script>
+</body>
+</html>

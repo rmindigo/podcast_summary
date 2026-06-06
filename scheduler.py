@@ -1,0 +1,84 @@
+"""
+Weekly digest runner. Can be called directly (python scheduler.py) or via APScheduler.
+Runs every Saturday at 12:00 PM UTC.
+"""
+import os
+import sys
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from database import SessionLocal
+from models import User
+from services.transcripts import fetch_week_transcripts
+from services.summarizer import summarize_episode, build_weekly_digest
+from services.email_service import send_digest
+
+
+def run_digest_for_user(user: User) -> bool:
+    active_channels = [c for c in user.channels if c.active]
+    if not active_channels:
+        print(f"[digest] {user.email} — no active channels, skipping")
+        return False
+
+    all_episodes = []
+    for channel in active_channels:
+        print(f"[digest] Fetching {channel.name} for {user.email}...")
+        try:
+            episodes = fetch_week_transcripts(channel.url, channel.name)
+            all_episodes.extend(episodes)
+            print(f"[digest]   → {len(episodes)} episode(s) with transcripts")
+        except Exception as e:
+            print(f"[digest]   → Error fetching {channel.name}: {e}")
+
+    if not all_episodes:
+        print(f"[digest] {user.email} — no new transcripts this week, skipping")
+        return False
+
+    print(f"[digest] Summarizing {len(all_episodes)} episode(s) for {user.email}...")
+    summarized = []
+    for ep in all_episodes:
+        try:
+            summarized.append(summarize_episode(ep))
+        except Exception as e:
+            print(f"[digest]   → Error summarizing '{ep['title']}': {e}")
+
+    if not summarized:
+        print(f"[digest] {user.email} — all summaries failed, skipping")
+        return False
+
+    print(f"[digest] Building aggregate digest for {user.email}...")
+    try:
+        digest = build_weekly_digest(summarized)
+    except Exception as e:
+        print(f"[digest] {user.email} — aggregate failed: {e}")
+        return False
+
+    sent = send_digest(user.email, user.access_token, digest)
+    print(f"[digest] {'Sent' if sent else 'FAILED'}: {user.email}")
+    return sent
+
+
+def run_weekly_digest():
+    print("[digest] Starting weekly digest run...")
+    db = SessionLocal()
+    try:
+        users = db.query(User).filter(User.active == True).all()
+        print(f"[digest] Processing {len(users)} active user(s)")
+        success, failed = 0, 0
+        for user in users:
+            try:
+                if run_digest_for_user(user):
+                    success += 1
+                else:
+                    failed += 1
+            except Exception as e:
+                print(f"[digest] Uncaught error for {user.email}: {e}")
+                failed += 1
+        print(f"[digest] Done. Sent: {success}, Skipped/Failed: {failed}")
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    run_weekly_digest()
