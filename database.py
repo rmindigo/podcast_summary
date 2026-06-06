@@ -2,7 +2,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./podcast_digest.db")
+DATABASE_URL = os.getenv("DATABASE_URL") or "sqlite:///./podcast_digest.db"
 
 # Railway PostgreSQL URLs start with postgres://, SQLAlchemy needs postgresql://
 if DATABASE_URL.startswith("postgres://"):

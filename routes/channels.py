@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -8,7 +9,7 @@ from services.transcripts import get_channel_display_name, normalize_channel_url
 router = APIRouter(prefix="/api/channels", tags=["channels"])
 
 
-def _get_user(authorization: str | None, db: Session) -> User:
+def _get_user(authorization: Optional[str], db: Session) -> User:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid token")
     token = authorization.removeprefix("Bearer ").strip()
@@ -23,14 +24,14 @@ class AddChannelRequest(BaseModel):
 
 
 @router.get("")
-def list_channels(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
+def list_channels(authorization: Optional[str] = Header(default=None), db: Session = Depends(get_db)):
     user = _get_user(authorization, db)
     channels = [c for c in user.channels if c.active]
     return [{"id": c.id, "name": c.name, "url": c.url, "created_at": c.created_at.isoformat()} for c in channels]
 
 
 @router.post("")
-def add_channel(req: AddChannelRequest, authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
+def add_channel(req: AddChannelRequest, authorization: Optional[str] = Header(default=None), db: Session = Depends(get_db)):
     user = _get_user(authorization, db)
 
     url = normalize_channel_url(req.url)
@@ -71,7 +72,7 @@ def add_channel(req: AddChannelRequest, authorization: str | None = Header(defau
 
 
 @router.delete("/{channel_id}")
-def remove_channel(channel_id: int, authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
+def remove_channel(channel_id: int, authorization: Optional[str] = Header(default=None), db: Session = Depends(get_db)):
     user = _get_user(authorization, db)
     channel = db.query(Channel).filter(Channel.id == channel_id, Channel.user_id == user.id).first()
     if not channel:

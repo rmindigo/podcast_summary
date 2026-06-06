@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 import scrapetube
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
 
@@ -63,7 +64,7 @@ def get_channel_videos(channel_url: str, days: int = 7) -> list[dict]:
     return videos
 
 
-def get_transcript(video_id: str) -> str | None:
+def get_transcript(video_id: str) -> Optional[str]:
     """Fetch and flatten a YouTube video transcript. Returns None if unavailable."""
     try:
         entries = YouTubeTranscriptApi.get_transcript(video_id, languages=["en", "en-US", "en-GB"])
