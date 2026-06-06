@@ -3,8 +3,131 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Channels | Investing Digest</title>
+  <title>My Dashboard | Investing Digest</title>
   <link rel="stylesheet" href="/static/style.css">
+  <style>
+    /* Digest accordion */
+    .digests-section { margin-top: 48px; }
+
+    .digest-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .digest-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px;
+      cursor: pointer;
+      user-select: none;
+      gap: 12px;
+    }
+    .digest-card-header:hover { background: var(--surface2); }
+
+    .digest-week { font-weight: 700; color: var(--text); font-size: 15px; }
+    .digest-meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    .digest-chevron {
+      color: var(--muted);
+      font-size: 12px;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    .digest-card.open .digest-chevron { transform: rotate(180deg); }
+
+    .digest-body {
+      display: none;
+      padding: 0 20px 24px;
+      border-top: 1px solid var(--border);
+    }
+    .digest-card.open .digest-body { display: block; }
+
+    /* Digest sections */
+    .d-section { margin-top: 24px; }
+    .d-section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    .d-overview p {
+      color: var(--muted2);
+      font-size: 14px;
+      line-height: 1.75;
+      margin-bottom: 12px;
+    }
+
+    .d-bullets { list-style: none; padding: 0; margin: 0; }
+    .d-bullets li {
+      color: var(--muted2);
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 5px 0 5px 16px;
+      position: relative;
+      border-bottom: 1px solid var(--border);
+    }
+    .d-bullets li:last-child { border-bottom: none; }
+    .d-bullets li::before { content: "—"; position: absolute; left: 0; color: var(--accent); font-size: 12px; }
+
+    .d-subsection-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin: 20px 0 8px;
+    }
+
+    /* Episode cards inside digest */
+    .d-episode {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 10px;
+    }
+    .d-episode-meta { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px; text-transform: uppercase; }
+    .d-episode-title { font-weight: 700; color: var(--text); font-size: 14px; margin-bottom: 8px; }
+    .d-episode-title a { color: var(--text); text-decoration: none; }
+    .d-episode-title a:hover { color: var(--accent); }
+    .d-episode-summary { color: var(--muted2); font-size: 13px; line-height: 1.65; margin-bottom: 10px; }
+    .d-episode-points { padding-left: 16px; margin: 0; }
+    .d-episode-points li { color: var(--muted2); font-size: 13px; line-height: 1.6; margin-bottom: 4px; }
+
+    /* Assets table inside digest */
+    .d-assets-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .d-assets-table th {
+      text-align: left;
+      padding: 8px 10px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    .d-assets-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--muted2); vertical-align: top; }
+    .d-assets-table tr:last-child td { border-bottom: none; }
+    .d-asset-name { font-weight: 700; color: var(--text); }
+    .sentiment-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+    }
+    .sentiment-Bullish { background: #166534; color: #86efac; }
+    .sentiment-Bearish { background: #7f1d1d; color: #fca5a5; }
+    .sentiment-Mixed  { background: #78350f; color: #fcd34d; }
+    .sentiment-Neutral { background: #1e293b; color: #94a3b8; }
+  </style>
 </head>
 <body>
   <div class="page">
@@ -19,8 +142,8 @@
 
     <main class="dashboard">
       <div class="dashboard-header">
-        <h1 class="dashboard-title">My Channels</h1>
-        <p class="dashboard-sub">Add YouTube channel URLs for any investing podcast you want included in your weekly digest.</p>
+        <h1 class="dashboard-title">My Dashboard</h1>
+        <p class="dashboard-sub">Add YouTube channels and review your past weekly digests.</p>
       </div>
 
       <!-- Add channel form -->
@@ -63,6 +186,17 @@
           <span class="muted">Only channels with transcripts available in the past 7 days will be included.</span>
         </div>
       </div>
+
+      <!-- Past Digests -->
+      <div class="digests-section">
+        <div class="channels-header">
+          <span class="section-label">Past Digests</span>
+          <span class="channel-count" id="digest-count"></span>
+        </div>
+        <div id="digests-list">
+          <div class="loading">Loading past digests...</div>
+        </div>
+      </div>
     </main>
 
   </div>
@@ -94,19 +228,18 @@
     }
 
     async function init() {
-      // Load user info
       try {
         const res = await apiCall(`/api/me?token=${token}`);
-        if (!res.ok) throw new Error();
-        const user = await res.json();
-        document.getElementById('nav-user').textContent = user.email;
-      } catch {
-        // Non-fatal
-      }
-
+        if (res.ok) {
+          const user = await res.json();
+          document.getElementById('nav-user').textContent = user.email;
+        }
+      } catch {}
       loadChannels();
+      loadDigests();
     }
 
+    /* ── Channels ── */
     async function loadChannels() {
       const list = document.getElementById('channels-list');
       const count = document.getElementById('channel-count');
@@ -114,29 +247,23 @@
         const res = await apiCall('/api/channels');
         const channels = await res.json();
         count.textContent = channels.length + ' channel' + (channels.length !== 1 ? 's' : '');
-
         if (channels.length === 0) {
           list.innerHTML = `
             <div class="empty-state">
               <div class="empty-icon">&#128250;</div>
               <p>No channels yet. Add your first YouTube investing channel above.</p>
               <p class="muted">Popular channels: <em>We Study Billionaires, Invest Like the Best, Macro Voices, Real Vision</em></p>
-            </div>
-          `;
+            </div>`;
           return;
         }
-
         list.innerHTML = channels.map(c => `
           <div class="channel-row" id="channel-${c.id}">
             <div class="channel-info">
-              <div class="channel-name">${escapeHtml(c.name)}</div>
-              <a href="${escapeHtml(c.url)}" target="_blank" class="channel-url">${escapeHtml(c.url)}</a>
+              <div class="channel-name">${esc(c.name)}</div>
+              <a href="${esc(c.url)}" target="_blank" class="channel-url">${esc(c.url)}</a>
             </div>
-            <button class="btn btn-danger-ghost" onclick="removeChannel(${c.id}, '${escapeHtml(c.name)}')">
-              Remove
-            </button>
-          </div>
-        `).join('');
+            <button class="btn btn-danger-ghost" onclick="removeChannel(${c.id}, '${esc(c.name)}')">Remove</button>
+          </div>`).join('');
       } catch {
         list.innerHTML = '<div class="error-state">Failed to load channels. Please refresh.</div>';
       }
@@ -147,17 +274,12 @@
       const btn = document.getElementById('add-btn');
       const url = document.getElementById('channel-url').value.trim();
       const msg = document.getElementById('add-message');
-
       btn.disabled = true;
       btn.textContent = 'Checking...';
       msg.textContent = '';
       msg.className = 'form-message';
-
       try {
-        const res = await apiCall('/api/channels', {
-          method: 'POST',
-          body: JSON.stringify({url}),
-        });
+        const res = await apiCall('/api/channels', { method: 'POST', body: JSON.stringify({url}) });
         const data = await res.json();
         if (res.ok) {
           msg.textContent = data.message;
@@ -180,18 +302,133 @@
     async function removeChannel(id, name) {
       if (!confirm(`Remove "${name}" from your digest?`)) return;
       try {
-        const res = await apiCall(`/api/channels/${id}`, {method: 'DELETE'});
-        if (res.ok) {
-          document.getElementById(`channel-${id}`)?.remove();
-          loadChannels();
-        }
+        const res = await apiCall(`/api/channels/${id}`, { method: 'DELETE' });
+        if (res.ok) loadChannels();
       } catch {
         alert('Failed to remove channel. Please try again.');
       }
     }
 
-    function escapeHtml(str) {
-      return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    /* ── Digests ── */
+    async function loadDigests() {
+      const list = document.getElementById('digests-list');
+      const count = document.getElementById('digest-count');
+      try {
+        const res = await apiCall('/api/digests');
+        const digests = await res.json();
+        count.textContent = digests.length + ' digest' + (digests.length !== 1 ? 's' : '');
+        if (digests.length === 0) {
+          list.innerHTML = `<div class="empty-state"><p>No digests yet. Your first one will arrive this Saturday.</p></div>`;
+          return;
+        }
+        list.innerHTML = digests.map(d => `
+          <div class="digest-card" id="dcard-${d.id}">
+            <div class="digest-card-header" onclick="toggleDigest(${d.id})">
+              <div>
+                <div class="digest-week">${esc(d.week_label)}</div>
+                <div class="digest-meta">${d.episode_count} episode${d.episode_count !== 1 ? 's' : ''}</div>
+              </div>
+              <span class="digest-chevron">&#9660;</span>
+            </div>
+            <div class="digest-body" id="dbody-${d.id}">
+              <div class="loading" style="padding:20px 0;">Loading...</div>
+            </div>
+          </div>`).join('');
+      } catch {
+        list.innerHTML = '<div class="error-state">Failed to load digests. Please refresh.</div>';
+      }
+    }
+
+    const loadedDigests = {};
+
+    async function toggleDigest(id) {
+      const card = document.getElementById(`dcard-${id}`);
+      const body = document.getElementById(`dbody-${id}`);
+      const isOpen = card.classList.contains('open');
+
+      if (isOpen) {
+        card.classList.remove('open');
+        return;
+      }
+
+      card.classList.add('open');
+
+      if (loadedDigests[id]) return; // already fetched
+
+      try {
+        const res = await apiCall(`/api/digests/${id}`);
+        const data = await res.json();
+        loadedDigests[id] = true;
+        body.innerHTML = renderDigest(data);
+      } catch {
+        body.innerHTML = '<p class="muted" style="padding:16px 0;">Failed to load digest.</p>';
+      }
+    }
+
+    function renderDigest(d) {
+      const agg = d.aggregate || {};
+      const overview = (agg.overview || '').split('\n\n').filter(p => p.trim());
+      const themes = agg.themes || [];
+      const calls = agg.calls || [];
+      const episodes = d.episodes || [];
+      const assets = d.assets || [];
+
+      let html = '';
+
+      /* Overview */
+      html += `<div class="d-section">
+        <div class="d-section-label">01 / Weekly Overview</div>
+        <div class="d-overview">${overview.map(p => `<p>${esc(p)}</p>`).join('')}</div>`;
+
+      if (themes.length) {
+        html += `<div class="d-subsection-label">Key Themes</div>
+          <ul class="d-bullets">${themes.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
+      }
+      if (calls.length) {
+        html += `<div class="d-subsection-label">Notable Calls</div>
+          <ul class="d-bullets">${calls.map(c => `<li>${esc(c)}</li>`).join('')}</ul>`;
+      }
+      html += `</div>`;
+
+      /* Episodes */
+      if (episodes.length) {
+        html += `<div class="d-section">
+          <div class="d-section-label">02 / Episode Breakdown</div>
+          ${episodes.map(ep => `
+            <div class="d-episode">
+              <div class="d-episode-meta">${esc(ep.channel)}${ep.published ? ' &middot; ' + esc(ep.published) : ''}</div>
+              <div class="d-episode-title"><a href="${esc(ep.url)}" target="_blank">${esc(ep.title)}</a></div>
+              ${ep.summary ? `<div class="d-episode-summary">${esc(ep.summary)}</div>` : ''}
+              ${ep.key_points && ep.key_points.length ? `<ul class="d-episode-points">${ep.key_points.map(p => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}
+            </div>`).join('')}
+        </div>`;
+      }
+
+      /* Assets */
+      if (assets.length) {
+        html += `<div class="d-section">
+          <div class="d-section-label">03 / Market Mentions</div>
+          <table class="d-assets-table">
+            <thead><tr>
+              <th>Asset</th><th>Type</th><th>Sentiment</th><th>Notes</th>
+            </tr></thead>
+            <tbody>${assets.map(a => `
+              <tr>
+                <td class="d-asset-name">${esc(a.asset || '')}</td>
+                <td>${esc(a.type || '')}</td>
+                <td><span class="sentiment-badge sentiment-${esc(a.sentiment || 'Neutral')}">${esc(a.sentiment || 'Neutral')}</span></td>
+                <td>${esc(a.notes || '')}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      }
+
+      return html;
+    }
+
+    function esc(str) {
+      return String(str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
   </script>
 </body>

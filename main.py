@@ -13,6 +13,7 @@ from apscheduler.triggers.cron import CronTrigger
 from database import init_db
 from routes.users import router as users_router
 from routes.channels import router as channels_router
+from routes.digests import router as digests_router
 
 
 def _run_digest():
@@ -38,6 +39,7 @@ app = FastAPI(title="Investing Podcast Digest", lifespan=lifespan)
 
 app.include_router(users_router)
 app.include_router(channels_router)
+app.include_router(digests_router)
 
 
 # Test/admin endpoint to manually trigger the digest

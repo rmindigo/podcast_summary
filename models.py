@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
@@ -35,3 +35,13 @@ class Channel(Base):
     last_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     user: Mapped["User"] = relationship("User", back_populates="channels")
+
+
+class Digest(Base):
+    __tablename__ = "digests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    sent_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    episode_count: Mapped[int] = mapped_column(Integer, default=0)
+    content_json: Mapped[str] = mapped_column(Text, nullable=False)
