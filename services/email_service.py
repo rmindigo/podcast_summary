@@ -21,23 +21,28 @@ def _sentiment_badge(sentiment: str) -> str:
     return f'<span style="background:{color};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:0.5px;">{sentiment.upper()}</span>'
 
 
+def _normalize(line: str) -> str:
+    """Strip markdown formatting so headers match regardless of how Claude formats them."""
+    return line.strip().lstrip("#").strip().lstrip("*").rstrip("*").rstrip(":").strip().upper()
+
+
 def _parse_aggregate(text: str) -> dict:
     """Split aggregate Claude output into sections."""
     sections = {"overview": "", "themes": "", "calls": ""}
     current = None
     lines = []
     for line in text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("WEEKLY OVERVIEW:"):
+        n = _normalize(line)
+        if n == "WEEKLY OVERVIEW":
             current = "overview"
             continue
-        elif stripped.startswith("KEY THEMES:"):
+        elif n == "KEY THEMES":
             if current == "overview":
                 sections["overview"] = "\n".join(lines).strip()
             current = "themes"
             lines = []
             continue
-        elif stripped.startswith("NOTABLE CALLS"):
+        elif n.startswith("NOTABLE CALLS"):
             if current == "themes":
                 sections["themes"] = "\n".join(lines).strip()
             current = "calls"
@@ -55,16 +60,17 @@ def _parse_episode_summary(text: str) -> dict:
     sections = {"summary": "", "points": [], "assets_raw": ""}
     current = None
     for line in text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("SUMMARY:"):
+        n = _normalize(line)
+        if n == "SUMMARY":
             current = "summary"
             continue
-        elif stripped.startswith("KEY POINTS:"):
+        elif n == "KEY POINTS":
             current = "points"
             continue
-        elif stripped.startswith("ASSETS MENTIONED:"):
+        elif n == "ASSETS MENTIONED":
             current = "assets"
             continue
+        stripped = line.strip()
         if current == "summary" and stripped:
             sections["summary"] += stripped + " "
         elif current == "points" and stripped.startswith("-"):
