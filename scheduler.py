@@ -88,23 +88,21 @@ def run_digest_for_user(user: User, db) -> bool:
         print(f"[digest] {user.email} — aggregate failed: {e}")
         return False
 
+    sent_at = datetime.utcnow()
+    payload = _build_storage_payload(digest, sent_at)
+    db_digest = Digest(
+        user_id=user.id,
+        sent_at=sent_at,
+        episode_count=len(payload["episodes"]),
+        content_json=json.dumps(payload),
+    )
+    db.add(db_digest)
+    db.commit()
+    print(f"[digest] Saved digest #{db_digest.id} for {user.email}")
+
     sent = send_digest(user.email, user.access_token, digest)
-    print(f"[digest] {'Sent' if sent else 'FAILED'}: {user.email}")
-
-    if sent:
-        sent_at = datetime.utcnow()
-        payload = _build_storage_payload(digest, sent_at)
-        db_digest = Digest(
-            user_id=user.id,
-            sent_at=sent_at,
-            episode_count=len(payload["episodes"]),
-            content_json=json.dumps(payload),
-        )
-        db.add(db_digest)
-        db.commit()
-        print(f"[digest] Saved digest #{db_digest.id} for {user.email}")
-
-    return sent
+    print(f"[digest] Email {'sent' if sent else 'FAILED (check FROM_EMAIL in .env)'}: {user.email}")
+    return True
 
 
 def run_weekly_digest():
