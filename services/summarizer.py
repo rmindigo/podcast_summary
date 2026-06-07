@@ -130,20 +130,27 @@ def build_weekly_digest(episodes: list[dict]) -> dict:
         messages=[{"role": "user", "content": ASSETS_PROMPT.format(episode_summaries=summaries_text)}],
     )
     assets_raw = assets_response.content[0].text.strip()
-
-    import json
-    try:
-        # Strip any accidental markdown code fences
-        if "```" in assets_raw:
-            assets_raw = assets_raw.split("```")[1]
-            if assets_raw.startswith("json"):
-                assets_raw = assets_raw[4:]
-        assets = json.loads(assets_raw)
-    except Exception:
-        assets = []
+    assets = _parse_assets_json(assets_raw)
 
     return {
         "aggregate": aggregate_text,
         "episodes": episodes,
         "assets": assets,
     }
+
+
+def _parse_assets_json(raw: str) -> list:
+    import json, re
+    # Try 1: direct parse
+    try:
+        return json.loads(raw)
+    except Exception:
+        pass
+    # Try 2: extract the JSON array from inside any surrounding text / code fences
+    match = re.search(r"\[.*\]", raw, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except Exception:
+            pass
+    return []
