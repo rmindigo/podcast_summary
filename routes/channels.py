@@ -51,7 +51,7 @@ def add_channel(req: AddChannelRequest, authorization: Optional[str] = Header(de
 
     # Try to validate the channel exists and get recent videos (lightweight check)
     try:
-        videos = get_channel_videos(url, days=30)
+        videos = get_channel_videos(url, limit=15)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
